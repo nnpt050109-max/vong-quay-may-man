@@ -1,1 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Vòng quay ngẫu nhiên chính xác</title>
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 20px; color: #333; }
+.khung-chua { display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap; }
+.cum-vong-quay { position: relative; display: inline-block; }
+canvas { border: 8px solid #333; border-radius: 50%; transition: transform 5s cubic-bezier(0.1, 0.8, 0.1, 1); background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+#kim-chi { font-size: 40px; color: #dc3545; position: absolute; top: -25px; left: 50%; transform: translateX(-50%); z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+ul { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; background: #fff; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+li { padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+li button { padding: 4px 8px; margin: 0; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+li button:hover { background: #c82333; }
+button, textarea { padding: 10px 14px; margin: 4px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+button:hover { background: #0056b3; transform: translateY(-1px); }
+button:disabled { background: #6c757d !important; cursor: not-allowed; transform: none; }
+#nut-xoa-het { background: #6c757d; }
+#nut-xoa-het:hover { background: #5a6268; }
+textarea { width: 320px; height: 80px; resize: vertical; font-family: inherit; vertical-align: middle; }
+h2 { cursor: default; user-select: none; display: inline-block; color: #222; }
+.vung-nhap-lieu { margin-bottom: 20px; }
+#ket-qua { min-height: 30px; margin: 15px 0; color: #28a745; font-size: 22px; font-weight: bold; }
 
+/* Nút xóa người vừa trúng giải */
+#nut-xoa-nguoi-trung {
+    background: #ff4757;
+    color: white;
+    font-size: 15px;
+    padding: 10px 20px;
+    display: none;
+    margin: 10px auto 0 auto;
+    box-shadow: 0 4px 6px rgba(255, 71, 87, 0.3);
+}
+#nut-xoa-nguoi-trung:hover { background: #ff2e44; }
+</style>
+</head>
+<body>
+
+<!-- Click vào tiêu đề h2 này để kích hoạt cài đặt chuỗi kết quả ngầm -->
+<h2 onclick="caiDatSapXepTruoc()">🎡 Vòng quay ngẫu nhiên</h2>
+
+<div class="vung-nhap-lieu">
+<textarea id="o-nhap-ten" placeholder="Nhập hoặc dán danh sách tên tại đây (mỗi tên một dòng)..."></textarea><br>
+<button onclick="themDanhSachTen()">Thêm danh sách</button>
+<button id="nut-xoa-het" onclick="xoaTatCa()">Xóa tất cả</button>
+</div>
+
+<div class="khung-chua">
+<div>
+<div class="cum-vong-quay">
+    <div id="kim-chi">▼</div>
+    <canvas id="vong-quay" width="400" height="400"></canvas>
+</div>
+<br>
+<button id="nut-quay" style="font-size:18px;padding:12px 40px;background:#28a745;" onclick="quayThuong()">Quay thưởng</button>
+<div id="ket-qua"></div>
+<!-- Nút xóa kết quả xuất hiện sau khi quay xong -->
+<button id="nut-xoa-nguoi-trung" onclick="xoaNguoiVuaTrung()">❌ Xóa người vừa trúng khỏi danh sách</button>
+</div>
+
+<div style="width: 280px; text-align: left;">
+<h3 style="margin-top:0;">Danh sách (<span id="so-luong">0</span>)</h3>
+<ul id="danh-sach-hien-thi"></ul>
+</div>
+</div>
+
+<script>
+let danhSachTen = [];
+let gocQuay = 0;
+let chuoiSapXepTruoc = []; // Mảng chứa kịch bản kết quả ẩn
+let tenNguoiTrungGanNhat = ""; // Lưu tên thay vì lưu index để tránh lỗi xóa nhầm mảng
+const mangMauSac = ["#ff9999","#99ccff","#99ff99","#ffff99","#ffcc99","#d5a6ff","#ffd966","#76d7c4","#f1948a","#85c1e9"];
+const nenCanvas = document.getElementById("vong-quay"), nguCam = nenCanvas.getContext("2d");
+
+function hienThiDanhSach(){
+ let ul = document.getElementById("danh-sach-hien-thi"); ul.innerHTML = "";
+ document.getElementById("so-luong").textContent = danhSachTen.length;
+ danhSachTen.forEach((ten, chiSo)=>{
+   let li = document.createElement("li");
+   li.innerHTML = `<span>${chiSo + 1}. ${ten}</span> <button onclick="xoaMotTen(${chiSo})">Xóa</button>`;
+   ul.appendChild(li);
+ });
+ veVongQuay();
+}
+
+function themDanhSachTen(){
+ let duLieuNhap = document.getElementById("o-nhap-ten").value;
+ if(!duLieuNhap.trim()) return;
+ let cacDong = duLieuNhap.split('\n');
+ cacDong.forEach(dong => {
+   let tenDaCat = dong.trim();
+   if(tenDaCat !== "") danhSachTen.push(tenDaCat);
+ });
+ document.getElementById("o-nhap-ten").value = "";
+ hienThiDanhSach();
+}
+
+function xoaMotTen(chiSo){
+ danhSachTen.splice(chiSo, 1);
+ lamMoiNutXoaTrung();
+ hienThiDanhSach();
+}
+
+function xoaTatCa(){
+ danhSachTen = [];
+ chuoiSapXepTruoc = []; 
+ lamMoiNutXoaTrung();
+ document.getElementById("ket-qua").textContent = "";
+ hienThiDanhSach();
+}
+
+function lamMoiNutXoaTrung() {
+ tenNguoiTrungGanNhat = "";
+ document.getElementById("nut-xoa-nguoi-trung").style.display = "none";
+}
+
+function veVongQuay(){
+ nguCam.clearRect(0, 0, 400, 400);
+ if(danhSachTen.length == 0){
+   nguCam.beginPath();
+   nguCam.arc(200, 200, 180, 0, Math.PI * 2);
+   nguCam.strokeStyle = "#ccc";
+   nguCam.stroke();
+   return;
+ }
+ let buocGoc = 2 * Math.PI / danhSachTen.length;
+ for(let i = 0; i < danhSachTen.length; i++){
+  nguCam.beginPath(); nguCam.moveTo(200, 200);
+  nguCam.arc(200, 200, 180, i * buocGoc, (i + 1) * buocGoc);
+  nguCam.fillStyle = mangMauSac[i % mangMauSac.length]; nguCam.fill(); 
+  nguCam.strokeStyle = "#fff"; nguCam.lineWidth = 2; nguCam.stroke();
+  
+  nguCam.save(); 
+  nguCam.translate(200, 200); 
+  nguCam.rotate(i * buocGoc + buocGoc / 2);
+  nguCam.fillStyle = "#333"; nguCam.font = "bold 14px Arial";
+  nguCam.textAlign = "right";
+  let tenHienThi = danhSachTen[i].length > 12 ? danhSachTen[i].substring(0, 10) + ".." : danhSachTen[i];
+  nguCam.fillText(tenHienThi, 170, 5);
+  nguCam.restore();
+ }
+}
+hienThiDanhSach();
+
+function caiDatSapXepTruoc() {
+    let mucTieu = prompt("Nhập chuỗi tên trúng giải theo thứ tự mong muốn (các tên cách nhau bằng dấu phẩy):");
+    if (mucTieu) {
+        chuoiSapXepTruoc = mucTieu.split(',').map(ten => ten.trim());
+        alert("Đã cài đặt kịch bản trúng giải ngầm thành công!");
+    }
+}
+
+function quayThuong(){
+ if(danhSachTen.length == 0){ alert("Chưa có tên trong danh sách!"); return; }
+ 
+ document.getElementById("nut-xoa-nguoi-trung").style.display = "none";
+ document.getElementById("nut-quay").disabled = true;
+ document.getElementById("ket-qua").innerHTML = "⏳ Đang quay...";
+ 
+ let oTrung = -1;
+ 
+ // Kiểm tra kịch bản sắp xếp trước
+ if(chuoiSapXepTruoc.length > 0) {
+     let nguoiTrungTiepTheo = chuoiSapXepTruoc[0];
+     let viTriTrongMang = danhSachTen.indexOf(nguoiTrungTiepTheo);
+     if(viTriTrongMang !== -1) {
+         oTrung = viTriTrongMang;
+         chuoiSapXepTruoc.shift();
+     } else {
+         chuoiSapXepTruoc.shift(); // Bỏ qua nếu tên này không tồn tại trong danh sách hiện tại
+         oTrung = Math.floor(Math.random() * danhSachTen.length);
+     }
+ } else {
+     oTrung = Math.floor(Math.random() * danhSachTen.length);
+ }
+ 
+ tenNguoiTrungGanNhat = danhSachTen[oTrung];
+ 
+ // THUẬT TOÁN ĐỊNH VỊ CHÍNH XÁC:
+ // Kim ở trên cùng ứng với góc 270 độ (hoặc -90 độ). 
+ // Tâm của ô trúng giải cách biên vẽ một khoảng là: (oTrung * doCuaO + doCuaO / 2)
+ let doCuaO = 360 / danhSachTen.length;
+ let phanDuGocHienTai = gocQuay % 360;
+ 
+ // Tính toán góc cần quay thêm để đưa tâm của ô trúng giải về chính xác vị trí 270 độ
+ let mucTieuGoc = (3600 - phanDuGocHienTai) + (270 - (oTrung * doCuaO + doCuaO / 2));
+ gocQuay += mucTieuGoc;
+ 
+ nenCanvas.style.transform = "rotate(" + gocQuay + "deg)";
+ 
+ setTimeout(()=>{
+  document.getElementById("ket-qua").innerHTML = "🎉 Kết quả: <span style='color:#e74c3c'>" + tenNguoiTrungGanNhat + "</span>";
+  document.getElementById("nut-quay").disabled = false;
+  document.getElementById("nut-xoa-nguoi-trung").style.display = "block";
+ }, 5000);
+}
+
+function xoaNguoiVuaTrung() {
+    if (tenNguoiTrungGanNhat !== "") {
+        let viTriHienTai = danhSachTen.indexOf(tenNguoiTrungGanNhat);
+        if (viTriHienTai !== -1) {
+            danhSachTen.splice(viTriHienTai, 1);
+        }
+        lamMoiNutXoaTrung();
+        document.getElementById("ket-qua").textContent = "";
+        hienThiDanhSach();
+    }
+}
+</script>
+</body>
+</html>

@@ -2,132 +2,100 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Vòng quay ngẫu nhiên chính xác</title>
+<title>Vòng quay ngẫu nhiên cấu hình theo Tên</title>
 <style>
 body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 20px; color: #333; }
-.khung-chua { display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap; }
-.cum-vong-quay { position: relative; display: inline-block; }
+.khung-chua { display: flex; justify-content: center; align-items: center; flex-direction: column; margin-top: 10px; }
+.cum-vong-quay { position: relative; display: inline-block; margin-top: 15px; }
 canvas { border: 8px solid #333; border-radius: 50%; transition: transform 5s cubic-bezier(0.1, 0.8, 0.1, 1); background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 #kim-chi { font-size: 40px; color: #dc3545; position: absolute; top: -25px; left: 50%; transform: translateX(-50%); z-index: 10; text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-ul { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; background: #fff; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
-li { padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-li button { padding: 4px 8px; margin: 0; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
-li button:hover { background: #c82333; }
-button, textarea { padding: 10px 14px; margin: 4px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
-button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; transition: all 0.2s; }
-button:hover { background: #0056b3; transform: translateY(-1px); }
-button:disabled { background: #6c757d !important; cursor: not-allowed; transform: none; }
-#nut-xoa-het { background: #6c757d; }
-#nut-xoa-het:hover { background: #5a6268; }
-textarea { width: 320px; height: 80px; resize: vertical; font-family: inherit; vertical-align: middle; }
-h2 { cursor: default; user-select: none; display: inline-block; color: #222; }
-.vung-nhap-lieu { margin-bottom: 20px; }
-#ket-qua { min-height: 30px; margin: 15px 0; color: #28a745; font-size: 22px; font-weight: bold; }
 
-/* Nút xóa người vừa trúng giải */
-#nut-xoa-nguoi-trung {
-    background: #ff4757;
-    color: white;
-    font-size: 15px;
-    padding: 10px 20px;
-    display: none;
-    margin: 10px auto 0 auto;
-    box-shadow: 0 4px 6px rgba(255, 71, 87, 0.3);
-}
-#nut-xoa-nguoi-trung:hover { background: #ff2e44; }
+/* Vùng nhập liệu của người quay */
+.form-nhap-lieu { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 15px; text-align: left; width: 320px; }
+.form-nhap-lieu label { font-weight: bold; font-size: 14px; display: block; margin-top: 10px; color: #555; }
+.form-nhap-lieu input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+
+button { padding: 12px 40px; margin: 15px 4px 4px 4px; border-radius: 6px; border: none; font-size: 18px; font-weight: bold; background: #28a745; color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 3px 6px rgba(40,167,69,0.3); }
+button:hover { background: #218838; transform: translateY(-1px); }
+button:disabled { background: #6c757d !important; cursor: not-allowed; transform: none; box-shadow: none; }
+h2 { cursor: default; user-select: none; display: inline-block; color: #222; margin-bottom: 15px; }
+#ket-qua { min-height: 35px; margin: 15px 0; color: #28a745; font-size: 22px; font-weight: bold; }
+#thong-bao-loi { color: #dc3545; font-weight: bold; margin-top: 5px; font-size: 14px; min-height: 20px; text-align: center; }
+
+/* Bảng lịch sử trúng thưởng */
+.khung-lich-su { width: 100%; max-width: 600px; margin: 30px auto 10px auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: left; }
+.khung-lich-su h3 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background-color: #f1f3f5; color: #495057; font-weight: bold; }
+tr:hover { background-color: #f8f9fa; }
+.text-trong { color: #868e96; text-align: center; padding: 20px; }
 </style>
 </head>
 <body>
 
-<!-- Click vào tiêu đề h2 này để kích hoạt cài đặt chuỗi kết quả ngầm -->
-<h2 onclick="caiDatSapXepTruoc()">🎡 Vòng quay ngẫu nhiên</h2>
-
-<div class="vung-nhap-lieu">
-<textarea id="o-nhap-ten" placeholder="Nhập hoặc dán danh sách tên tại đây (mỗi tên một dòng)..."></textarea><br>
-<button onclick="themDanhSachTen()">Thêm danh sách</button>
-<button id="nut-xoa-het" onclick="xoaTatCa()">Xóa tất cả</button>
-</div>
+<h2>🎡 Vòng quay may mắn trúng thưởng</h2>
 
 <div class="khung-chua">
-<div>
-<div class="cum-vong-quay">
-    <div id="kim-chi">▼</div>
-    <canvas id="vong-quay" width="400" height="400"></canvas>
-</div>
-<br>
-<button id="nut-quay" style="font-size:18px;padding:12px 40px;background:#28a745;" onclick="quayThuong()">Quay thưởng</button>
-<div id="ket-qua"></div>
-<!-- Nút xóa kết quả xuất hiện sau khi quay xong -->
-<button id="nut-xoa-nguoi-trung" onclick="xoaNguoiVuaTrung()">❌ Xóa người vừa trúng khỏi danh sách</button>
-</div>
+    <div class="form-nhap-lieu">
+        <label for="input-ten">Họ và tên của bạn:</label>
+        <input type="text" id="input-ten" placeholder="Nhập đầy đủ họ và tên...">
+        
+        <label for="input-ma">Mã giới thiệu quay thưởng:</label>
+        <input type="text" id="input-ma" placeholder="Nhập mã giới thiệu gồm chữ/số...">
+        
+        <div id="thong-bao-loi"></div>
+    </div>
 
-<div style="width: 280px; text-align: left;">
-<h3 style="margin-top:0;">Danh sách (<span id="so-luong">0</span>)</h3>
-<ul id="danh-sach-hien-thi"></ul>
-</div>
+    <div class="cum-vong-quay">
+        <div id="kim-chi">▼</div>
+        <canvas id="vong-quay" width="400" height="400"></canvas>
+    </div>
+    
+    <button id="nut-quay" onclick="batDauQuayThuong()">Xác thực & Quay thưởng</button>
+    <div id="ket-qua"></div>
+
+    <div class="khung-lich-su">
+        <h3>📜 Lịch sử trúng thưởng <button onclick="xoaLichSu()" style="font-size:12px; padding:4px 8px; margin:0; background:#dc3545; box-shadow:none;">Xóa lịch sử</button></h3>
+        <div id="vung-bang-lich-su">
+            <p class="text-trong">Chưa có lượt quay nào.</p>
+        </div>
+    </div>
 </div>
 
 <script>
-let danhSachTen = [];
+// ==========================================
+// CẤU HÌNH DỮ LIỆU HỆ THỐNG (BẠN TỰ SỬA TẠI ĐÂY)
+// ==========================================
+
+// 1. Danh sách các phần quà hiển thị trên vòng quay
+let danhSachPhanQua = ["Điện thoại", "Thẻ cào 100k", "Nước ngọt", "Chúc may mắn", "Khăn giấy", "Nón bảo hiểm", "Thẻ cào 50k", "Voucher 200k"];
+
+// 2. Danh sách các mã giới thiệu hợp lệ dùng làm điều kiện để được quay
+let cacMaHopLe = ["MA001", "MA002", "MA003", "ZZZ2EW", "VIP999", "MAYMAN777"];
+
+// 3. KỊCH BẢN ĐỊNH SẴN PHẦN QUÀ CHỈ THEO TÊN NGƯỜI QUAY
+// Hệ thống tự động viết hoa khi đối chiếu, bạn hãy nhập HOA TOÀN BỘ cho Tên ở đây.
+let kichBanTrungGiaiTheoTen = {
+    "VĂN A": "Khăn giấy",
+    "NGUYỄN VĂN B": "Điện thoại",
+    "TRẦN THỊ C": "Thẻ cào 100k"
+};
+
+
+// ==========================================
+// LOGIC XỬ LÝ KHÔNG CẦN CHỈNH SỬA
+// ==========================================
 let gocQuay = 0;
-let chuoiSapXepTruoc = []; // Mảng chứa kịch bản kết quả ẩn
-let tenNguoiTrungGanNhat = ""; // Lưu tên thay vì lưu index để tránh lỗi xóa nhầm mảng
+let maDaSuDung = []; 
+let danhSachLichSu = []; 
 const mangMauSac = ["#ff9999","#99ccff","#99ff99","#ffff99","#ffcc99","#d5a6ff","#ffd966","#76d7c4","#f1948a","#85c1e9"];
 const nenCanvas = document.getElementById("vong-quay"), nguCam = nenCanvas.getContext("2d");
 
-function hienThiDanhSach(){
- let ul = document.getElementById("danh-sach-hien-thi"); ul.innerHTML = "";
- document.getElementById("so-luong").textContent = danhSachTen.length;
- danhSachTen.forEach((ten, chiSo)=>{
-   let li = document.createElement("li");
-   li.innerHTML = `<span>${chiSo + 1}. ${ten}</span> <button onclick="xoaMotTen(${chiSo})">Xóa</button>`;
-   ul.appendChild(li);
- });
- veVongQuay();
-}
-
-function themDanhSachTen(){
- let duLieuNhap = document.getElementById("o-nhap-ten").value;
- if(!duLieuNhap.trim()) return;
- let cacDong = duLieuNhap.split('\n');
- cacDong.forEach(dong => {
-   let tenDaCat = dong.trim();
-   if(tenDaCat !== "") danhSachTen.push(tenDaCat);
- });
- document.getElementById("o-nhap-ten").value = "";
- hienThiDanhSach();
-}
-
-function xoaMotTen(chiSo){
- danhSachTen.splice(chiSo, 1);
- lamMoiNutXoaTrung();
- hienThiDanhSach();
-}
-
-function xoaTatCa(){
- danhSachTen = [];
- chuoiSapXepTruoc = []; 
- lamMoiNutXoaTrung();
- document.getElementById("ket-qua").textContent = "";
- hienThiDanhSach();
-}
-
-function lamMoiNutXoaTrung() {
- tenNguoiTrungGanNhat = "";
- document.getElementById("nut-xoa-nguoi-trung").style.display = "none";
-}
-
 function veVongQuay(){
  nguCam.clearRect(0, 0, 400, 400);
- if(danhSachTen.length == 0){
-   nguCam.beginPath();
-   nguCam.arc(200, 200, 180, 0, Math.PI * 2);
-   nguCam.strokeStyle = "#ccc";
-   nguCam.stroke();
-   return;
- }
- let buocGoc = 2 * Math.PI / danhSachTen.length;
- for(let i = 0; i < danhSachTen.length; i++){
+ let buocGoc = 2 * Math.PI / danhSachPhanQua.length;
+ for(let i = 0; i < danhSachPhanQua.length; i++){
   nguCam.beginPath(); nguCam.moveTo(200, 200);
   nguCam.arc(200, 200, 180, i * buocGoc, (i + 1) * buocGoc);
   nguCam.fillStyle = mangMauSac[i % mangMauSac.length]; nguCam.fill(); 
@@ -138,75 +106,126 @@ function veVongQuay(){
   nguCam.rotate(i * buocGoc + buocGoc / 2);
   nguCam.fillStyle = "#333"; nguCam.font = "bold 14px Arial";
   nguCam.textAlign = "right";
-  let tenHienThi = danhSachTen[i].length > 12 ? danhSachTen[i].substring(0, 10) + ".." : danhSachTen[i];
+  let tenHienThi = danhSachPhanQua[i].length > 12 ? danhSachPhanQua[i].substring(0, 10) + ".." : danhSachPhanQua[i];
   nguCam.fillText(tenHienThi, 170, 5);
   nguCam.restore();
  }
 }
-hienThiDanhSach();
+veVongQuay();
 
-function caiDatSapXepTruoc() {
-    let mucTieu = prompt("Nhập chuỗi tên trúng giải theo thứ tự mong muốn (các tên cách nhau bằng dấu phẩy):");
-    if (mucTieu) {
-        chuoiSapXepTruoc = mucTieu.split(',').map(ten => ten.trim());
-        alert("Đã cài đặt kịch bản trúng giải ngầm thành công!");
+function capNhatGiaoDienLichSu() {
+    let vungChua = document.getElementById("vung-bang-lich-su");
+    if(danhSachLichSu.length === 0) {
+        vungChua.innerHTML = '<p class="text-trong">Chưa có lượt quay nào.</p>';
+        return;
     }
+    
+    let htmlTable = `
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">STT</th>
+                    <th>Họ và Tên</th>
+                    <th style="width: 120px;">Mã số</th>
+                    <th>Phần quà</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    for(let i = danhSachLichSu.length - 1; i >= 0; i--) {
+        htmlTable += `
+            <tr>
+                <td><b>${i + 1}</b></td>
+                <td>${danhSachLichSu[i].ten}</td>
+                <td><code style="background:#e9ecef; padding:2px 6px; border-radius:4px;">${danhSachLichSu[i].ma}</code></td>
+                <td style="color:#e74c3c; font-weight:bold;">${danhSachLichSu[i].qua}</td>
+            </tr>
+        `;
+    }
+    
+    htmlTable += `</tbody></table>`;
+    vungChua.innerHTML = htmlTable;
 }
 
-function quayThuong(){
- if(danhSachTen.length == 0){ alert("Chưa có tên trong danh sách!"); return; }
+function batDauQuayThuong(){
+ let tenNguoiQuay = document.getElementById("input-ten").value.trim();
+ let maGioiThieu = document.getElementById("input-ma").value.trim().toUpperCase(); 
+ let oBaoLoi = document.getElementById("thong-bao-loi");
  
- document.getElementById("nut-xoa-nguoi-trung").style.display = "none";
+ oBaoLoi.textContent = ""; 
+ document.getElementById("ket-qua").innerHTML = "";
+
+ if(tenNguoiQuay === "" || maGioiThieu === "") {
+     oBaoLoi.textContent = "❌ Vui lòng nhập đầy đủ Họ tên và Mã giới thiệu!";
+     return;
+ }
+
+ if(!cacMaHopLe.includes(maGioiThieu)) {
+     oBaoLoi.textContent = "❌ Mã giới thiệu không tồn tại hoặc không hợp lệ!";
+     return;
+ }
+
+ if(maDaSuDung.includes(maGioiThieu)) {
+     oBaoLoi.textContent = "❌ Mã giới thiệu này đã được sử dụng rồi!";
+     return;
+ }
+ 
  document.getElementById("nut-quay").disabled = true;
- document.getElementById("ket-qua").innerHTML = "⏳ Đang quay...";
+ document.getElementById("input-ten").disabled = true;
+ document.getElementById("input-ma").disabled = true;
+ document.getElementById("ket-qua").innerHTML = "⏳ Đang xác thực thông tin và quay thưởng...";
  
  let oTrung = -1;
  
- // Kiểm tra kịch bản sắp xếp trước
- if(chuoiSapXepTruoc.length > 0) {
-     let nguoiTrungTiepTheo = chuoiSapXepTruoc[0];
-     let viTriTrongMang = danhSachTen.indexOf(nguoiTrungTiepTheo);
+ // Chuẩn hóa chuỗi Tên (Viết hoa toàn bộ) để so khớp kịch bản ẩn
+ let tenKiemTra = tenNguoiQuay.toUpperCase();
+ 
+ if(kichBanTrungGiaiTheoTen[tenKiemTra]) {
+     let phanQuaChiDinh = kichBanTrungGiaiTheoTen[tenKiemTra];
+     let viTriTrongMang = danhSachPhanQua.indexOf(phanQuaChiDinh);
      if(viTriTrongMang !== -1) {
          oTrung = viTriTrongMang;
-         chuoiSapXepTruoc.shift();
      } else {
-         chuoiSapXepTruoc.shift(); // Bỏ qua nếu tên này không tồn tại trong danh sách hiện tại
-         oTrung = Math.floor(Math.random() * danhSachTen.length);
+         oTrung = Math.floor(Math.random() * danhSachPhanQua.length);
      }
  } else {
-     oTrung = Math.floor(Math.random() * danhSachTen.length);
+     oTrung = Math.floor(Math.random() * danhSachPhanQua.length);
  }
  
- tenNguoiTrungGanNhat = danhSachTen[oTrung];
+ let quaTangNhanDuoc = danhSachPhanQua[oTrung];
  
- // THUẬT TOÁN ĐỊNH VỊ CHÍNH XÁC:
- // Kim ở trên cùng ứng với góc 270 độ (hoặc -90 độ). 
- // Tâm của ô trúng giải cách biên vẽ một khoảng là: (oTrung * doCuaO + doCuaO / 2)
- let doCuaO = 360 / danhSachTen.length;
+ let doCuaO = 360 / danhSachPhanQua.length;
  let phanDuGocHienTai = gocQuay % 360;
- 
- // Tính toán góc cần quay thêm để đưa tâm của ô trúng giải về chính xác vị trí 270 độ
  let mucTieuGoc = (3600 - phanDuGocHienTai) + (270 - (oTrung * doCuaO + doCuaO / 2));
  gocQuay += mucTieuGoc;
  
  nenCanvas.style.transform = "rotate(" + gocQuay + "deg)";
  
  setTimeout(()=>{
-  document.getElementById("ket-qua").innerHTML = "🎉 Kết quả: <span style='color:#e74c3c'>" + tenNguoiTrungGanNhat + "</span>";
+  document.getElementById("ket-qua").innerHTML = `🎉 Chúc mừng bạn <span style="color:#28a745">${tenNguoiQuay}</span> đã trúng giải: <br><span style="color:#e74c3c; font-size: 26px;">${quaTangNhanDuoc}</span>`;
+  
+  danhSachLichSu.push({
+      ten: tenNguoiQuay,
+      ma: maGioiThieu,
+      qua: quaTangNhanDuoc
+  });
+  
+  capNhatGiaoDienLichSu();
+  maDaSuDung.push(maGioiThieu);
+  
   document.getElementById("nut-quay").disabled = false;
-  document.getElementById("nut-xoa-nguoi-trung").style.display = "block";
+  document.getElementById("input-ten").disabled = false;
+  document.getElementById("input-ma").disabled = false;
+  document.getElementById("input-ten").value = "";
+  document.getElementById("input-ma").value = "";
  }, 5000);
 }
 
-function xoaNguoiVuaTrung() {
-    if (tenNguoiTrungGanNhat !== "") {
-        let viTriHienTai = danhSachTen.indexOf(tenNguoiTrungGanNhat);
-        if (viTriHienTai !== -1) {
-            danhSachTen.splice(viTriHienTai, 1);
-        }
-        lamMoiNutXoaTrung();
-        document.getElementById("ket-qua").textContent = "";
-        hienThiDanhSach();
+function xoaLichSu() {
+    if(confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trúng thưởng không?")) {
+        danhSachLichSu = [];
+        capNhatGiaoDienLichSu();
     }
 }
 </script>
